@@ -29,7 +29,7 @@ namespace WinFormsApp1
         /// </summary>
         private void InitializeComponent()
         {
-            this.treeView1 = new System.Windows.Forms.TreeView();    
+            this.treeView1 = new System.Windows.Forms.TreeView();
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             System.Windows.Forms.Button button3 = new System.Windows.Forms.Button();
@@ -61,7 +61,7 @@ namespace WinFormsApp1
             this.button2.Location = new System.Drawing.Point(491, 41);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
-            this.button2.TabIndex = 2;
+            this.button2.TabIndex = INDEX;
             this.button2.Text = "button2";
             this.button2.UseVisualStyleBackColor = true;
             // 
@@ -71,13 +71,13 @@ namespace WinFormsApp1
             button3.Location = new System.Drawing.Point(491, 41);
             button3.Name = "button3";
             button3.Size = new System.Drawing.Size(75, 23);
-            button3.TabIndex = 0;  
+            button3.TabIndex = 0;
             button3.Text = "button3";
             button3.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F); 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(578, 398);
             this.Controls.Add(this.button2);
@@ -95,6 +95,8 @@ namespace WinFormsApp1
         private System.Windows.Forms.TreeView treeView1;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
+
+        private const int INDEX = 3;
     }
 }
 

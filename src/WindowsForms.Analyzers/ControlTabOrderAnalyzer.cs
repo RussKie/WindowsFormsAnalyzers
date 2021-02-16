@@ -16,9 +16,9 @@ namespace WindowsForms.Analyzers
         public static class DiagnosticIds
         {
 
-            public const string NonNumericTabIndexValue = "SWFA0001";
+            public const string NonNumericTabIndexValue = "WF0001";
 
-            public const string InconsistentTabIndex = "SWFA0010";
+            public const string InconsistentTabIndex = "WF0010";
 
         }
 
@@ -30,7 +30,7 @@ namespace WindowsForms.Analyzers
         private static readonly DiagnosticDescriptor NonNumericTabIndexValueRule
             = new(DiagnosticIds.NonNumericTabIndexValue,
                   "Ensure numeric controls tab order value",
-                  "Control '{0}' has unexpected TabIndex value.",
+                  "Control '{0}' has unexpected TabIndex value: '{1}'.",
                   Category,
                   DiagnosticSeverity.Warning,
                   isEnabledByDefault: true,
@@ -39,7 +39,7 @@ namespace WindowsForms.Analyzers
         private static readonly DiagnosticDescriptor InconsistentTabIndexRule
             = new(DiagnosticIds.InconsistentTabIndex,
                   "Verify correct controls tab order",
-                  "Control '{0}' has a different TabIndex value to its order in the parent's control collection.",
+                  "Control '{0}' has ordinal index of {1} but sets a different TabIndex of {2}.",
                   Category,
                   DiagnosticSeverity.Warning,
                   isEnabledByDefault: true,
@@ -49,9 +49,11 @@ namespace WindowsForms.Analyzers
         private readonly Dictionary<string, int> _controlsTabIndex = new();
         // Contains the list of fields and local controls in order those are added to parent controls.
         private readonly Dictionary<string, List<string>> _controlsAddIndex = new();
+        private readonly Dictionary<string, Location> _controlsAddIndexLocations = new();
 
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(InconsistentTabIndexRule);
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
+            => ImmutableArray.Create(InconsistentTabIndexRule, NonNumericTabIndexValueRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -109,8 +111,58 @@ namespace WindowsForms.Analyzers
                     }
                 }
 
-                Diagnostic diagnostic = Diagnostic.Create(InconsistentTabIndexRule, Location.None, operationBlock.ToString());
-                context.ReportDiagnostic(diagnostic);
+                if (_controlsTabIndex.Count < 1)
+                {
+                    // No controls explicitly set TabIndex - all good
+                    return;
+                }
+
+                // _controlsAddIndex dictionary, which looks something like this:
+                //
+                //      [this.Controls.Add]   : new List { button3, this.button1 }
+                //      [panel1.Controls.Add] : new List { label2 }
+                //
+                // Flatten to look like:
+                //
+                //      [button3:0]
+                //      [this.button1:1]
+                //      [label2:0]
+                Dictionary<string, int> flatControlsAddIndex = new();
+                foreach (string key in _controlsAddIndex.Keys)
+                {
+                    for (int i = 0; i < _controlsAddIndex[key].Count; i++)
+                    {
+                        string controlName = _controlsAddIndex[key][i];
+                        flatControlsAddIndex[controlName] = i;
+                    }
+                }
+
+                // Verify explicit TabIndex is the same as the "add order"
+                foreach (string key in _controlsTabIndex.Keys)
+                {
+                    if (!flatControlsAddIndex.ContainsKey(key))
+                    {
+                        // TODO: assert, diagnostics, etc.
+                        continue;
+                    }
+
+                    int tabIndex = _controlsTabIndex[key];
+                    int addIndex = flatControlsAddIndex[key];
+
+                    if (tabIndex == addIndex)
+                    {
+                        continue;
+                    }
+
+                    // If the key exists in _controlsAddIndex, it exists _controlsAddIndexLocations
+                    var syntaxTree = _controlsAddIndexLocations[key];
+
+                    Diagnostic diagnostic = Diagnostic.Create(InconsistentTabIndexRule,
+                        location: _controlsAddIndexLocations[key],
+                        key, addIndex, tabIndex);
+                    context.ReportDiagnostic(diagnostic);
+                }
+
             }
         }
 
@@ -121,8 +173,6 @@ namespace WindowsForms.Analyzers
                 return;
             }
 
-            var syntax = expressionSyntax.Expression;
-
             // this.Controls.Add(this.button2) --> this.button2
             ArgumentSyntax? argumentSyntax = expressionSyntax.ArgumentList.Arguments.FirstOrDefault();
             if (argumentSyntax is null)
@@ -130,22 +180,34 @@ namespace WindowsForms.Analyzers
                 return;
             }
 
-            // this is something like "this.Controls.Add" or "panel1.Controls.Add", but good enough for our intents and purposes
-            string container = syntax.ToString();
-
-            if (!_controlsAddIndex.ContainsKey(container))
-            {
-                _controlsAddIndex[container] = new List<string>();
-            }
-
-            // button2
             string? controlName = GetControlName(argumentSyntax.Expression);
             if (controlName is null)
             {
                 return;
             }
 
+            // this is something like "this.Controls.Add" or "panel1.Controls.Add", but good enough for our intents and purposes
+            ExpressionSyntax? syntax = expressionSyntax.Expression;
+            string container = syntax.ToString();
+
+            // Transform "Controls.Add" statements into a map. E.g.:
+            //
+            //      this.Controls.Add(button3);
+            //      panel1.Controls.Add(label2);
+            //      this.Controls.Add(this.button1);
+            //
+            // ...will become:
+            //
+            //      [this.Controls.Add]   : new List { button3, this.button1 }
+            //      [panel1.Controls.Add] : new List { label2 }
+
+            if (!_controlsAddIndex.ContainsKey(container))
+            {
+                _controlsAddIndex[container] = new List<string>();
+            }
+
             _controlsAddIndex[container].Add(controlName);
+            _controlsAddIndexLocations[controlName] = Location.Create(syntax.SyntaxTree, syntax.Span);
         }
 
         private void ParseTabIndexAssignments(OperationBlockAnalysisContext context, AssignmentExpressionSyntax expressionSyntax)
@@ -165,16 +227,16 @@ namespace WindowsForms.Analyzers
                 return;
             }
 
-            if (expressionSyntax.Right.Kind() != Microsoft.CodeAnalysis.CSharp.SyntaxKind.NumericLiteralExpression)
+            if (expressionSyntax.Right is not LiteralExpressionSyntax propertyValueExpressionSyntax)
             {
-                Diagnostic diagnostic1 = Diagnostic.Create(NonNumericTabIndexValueRule,
+                var diagnostic = Diagnostic.Create(NonNumericTabIndexValueRule,
                     Location.Create(expressionSyntax.Right.SyntaxTree, expressionSyntax.Right.Span),
-                    controlName);
-                context.ReportDiagnostic(diagnostic1);
+                    controlName,
+                    expressionSyntax.Right.ToString());
+                context.ReportDiagnostic(diagnostic);
                 return;
             }
 
-            var propertyValueExpressionSyntax = (LiteralExpressionSyntax)expressionSyntax.Right;
             int tabIndexValue = (int)propertyValueExpressionSyntax.Token.Value;
 
             // "button3:0"
