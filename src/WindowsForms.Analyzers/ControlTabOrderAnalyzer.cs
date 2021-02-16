@@ -48,7 +48,8 @@ namespace WindowsForms.Analyzers
 
         // Contains the list of fields and local controls that we need to check for TabIndex property value.
         private readonly List<string> _controls = new();
-        private readonly Dictionary<string, int> _controlsIndex = new();
+        private readonly Dictionary<string, int> _controlsTabIndex = new();
+        private readonly Dictionary<string, List<string>> _controlsAddIndex = new();
 
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(InconsistentTabIndexRule);
@@ -146,6 +147,30 @@ namespace WindowsForms.Analyzers
             }
 
             var syntax = expressionSyntax.Expression;
+
+            // this.Controls.Add(this.button2) --> this.button2
+            ArgumentSyntax? argumentSyntax = expressionSyntax.ArgumentList.Arguments.FirstOrDefault();
+            if (argumentSyntax is null)
+            {
+                return;
+            }
+
+            // this is something like "this.Controls.Add" or "panel1.Controls.Add", but good enough for our intents and purposes
+            string container = syntax.ToString();
+
+            if (!_controlsAddIndex.ContainsKey(container))
+            {
+                _controlsAddIndex[container] = new List<string>();
+            }
+
+            // button2
+            string? controlName = GetControlName(argumentSyntax.Expression);
+            if (controlName is null)
+            {
+                return;
+            }
+
+            _controlsAddIndex[container].Add(controlName);
         }
 
         private void ParseTabIndexAssignments(OperationBlockAnalysisContext context, AssignmentExpressionSyntax expressionSyntax)
@@ -158,18 +183,8 @@ namespace WindowsForms.Analyzers
                 return;
             }
 
-            string controlName;
-            if (propertyNameExpressionSyntax.Expression is IdentifierNameSyntax identifierNameSyntax)
-            {
-                // local variable, e.g. button3.TabIndex = 0;
-                controlName = identifierNameSyntax.Identifier.ValueText;
-            }
-            else if (propertyNameExpressionSyntax.Expression is MemberAccessExpressionSyntax controlNameExpressionSyntax)
-            {
-                // field, e.g. this.button1.TabIndex = 1;
-                controlName = controlNameExpressionSyntax.Name.Identifier.ValueText;
-            }
-            else
+            string? controlName = GetControlName(propertyNameExpressionSyntax.Expression);
+            if (controlName is null)
             {
                 Debug.Fail("How did we get here?");
                 return;
@@ -188,7 +203,19 @@ namespace WindowsForms.Analyzers
             int tabIndexValue = (int)propertyValueExpressionSyntax.Token.Value;
 
             // "button3:0"
-            _controlsIndex[controlName] = tabIndexValue;
+            _controlsTabIndex[controlName] = tabIndexValue;
         }
+
+        private static string? GetControlName(ExpressionSyntax expressionSyntax)
+            => expressionSyntax switch
+            {
+                // local variable, e.g. "button3.TabIndex = 0" --> "button3";
+                IdentifierNameSyntax identifierNameSyntax => identifierNameSyntax.Identifier.ValueText,
+
+                // field, e.g. "this.button1.TabIndex = 1" --> "button1";
+                MemberAccessExpressionSyntax controlNameExpressionSyntax => controlNameExpressionSyntax.ToString(),
+
+                _ => null,
+            };
     }
 }
