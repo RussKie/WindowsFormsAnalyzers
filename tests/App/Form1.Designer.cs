@@ -71,7 +71,7 @@ namespace WinFormsApp1
             button3.Location = new System.Drawing.Point(491, 41);
             button3.Name = "button3";
             button3.Size = new System.Drawing.Size(75, 23);
-            button3.TabIndex = 0;
+            button3.TabIndex = 0;  
             button3.Text = "button3";
             button3.UseVisualStyleBackColor = true;
             // 

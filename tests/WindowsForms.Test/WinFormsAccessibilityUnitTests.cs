@@ -20,13 +20,15 @@ namespace WinFormsApp1
     {
         private void InitializeComponent()
         {
+            this.Controls.Add(this.button2);
+            this.button1.TabIndex = 1;
+            button3.TabIndex = 0;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(578, 398);
-            this.Controls.Add(this.button2);
             this.Controls.Add(button3);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.treeView1);

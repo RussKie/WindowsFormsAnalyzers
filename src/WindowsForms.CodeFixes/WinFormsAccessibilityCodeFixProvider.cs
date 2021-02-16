@@ -18,7 +18,7 @@ namespace WindowsForms
     {
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(ControlTabOrderAnalyzer.DiagnosticId); }
+            get { return ImmutableArray.Create(ControlTabOrderAnalyzer.DiagnosticIds.NonNumericTabIndexValue); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
