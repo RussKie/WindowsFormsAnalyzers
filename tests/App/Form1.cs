@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Igor Velikorossov. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
 using System.Windows.Forms;
 
 namespace WinFormsApp1
@@ -8,7 +10,6 @@ namespace WinFormsApp1
         public Form1()
         {
             InitializeComponent();
-            Console.WriteLine("TEST"); 
         }
     }
 }

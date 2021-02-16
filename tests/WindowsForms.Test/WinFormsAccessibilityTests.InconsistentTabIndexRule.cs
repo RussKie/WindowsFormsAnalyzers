@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿// Copyright (c) Igor Velikorossov. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
     WindowsForms.Analyzers.ControlTabOrderAnalyzer,
