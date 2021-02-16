@@ -3,7 +3,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -46,9 +45,9 @@ namespace WindowsForms.Analyzers
                   isEnabledByDefault: true,
                   "Remove TabIndex assignments and re-order controls in the parent's control collection.");
 
-        // Contains the list of fields and local controls that we need to check for TabIndex property value.
-        private readonly List<string> _controls = new();
+        // Contains the list of fields and local controls that explicitly set TabIndex properties.
         private readonly Dictionary<string, int> _controlsTabIndex = new();
+        // Contains the list of fields and local controls in order those are added to parent controls.
         private readonly Dictionary<string, List<string>> _controlsAddIndex = new();
 
 
@@ -74,17 +73,6 @@ namespace WindowsForms.Analyzers
 
             foreach (IOperation operationBlock in context.OperationBlocks)
             {
-                if (operationBlock.Kind == OperationKind.FieldInitializer)
-                {
-                    // "        private System.Windows.Forms.TreeView treeView1;"
-                    IFieldInitializerOperation fieldInitializerOperation = (IFieldInitializerOperation)operationBlock;
-
-                    // "treeView1", etc.
-                    _controls.AddRange(fieldInitializerOperation.InitializedFields.Select(field => field.Name));
-
-                    continue;
-                }
-
                 if (operationBlock is not IBlockOperation blockOperation)
                 {
                     continue;
@@ -94,19 +82,6 @@ namespace WindowsForms.Analyzers
                 {
                     switch (operation.Kind)
                     {
-                        case OperationKind.VariableDeclarationGroup:
-                            {
-                                // "            System.Windows.Forms.Button button3 = new System.Windows.Forms.Button();"
-                                var variableDeclarationGroupOperation = (IVariableDeclarationGroupOperation)operation;
-                                IVariableDeclarationOperation variableDeclarationOperation = variableDeclarationGroupOperation.Declarations.First(op => op.Kind == OperationKind.VariableDeclaration);
-                                IVariableDeclaratorOperation variableDeclaratorOperation = variableDeclarationOperation.Declarators.First(op => op.Kind == OperationKind.VariableDeclarator);
-                                var variableDeclaratorSyntax = (VariableDeclaratorSyntax)variableDeclaratorOperation.Syntax;
-
-                                // "button3"
-                                _controls.Add(variableDeclaratorSyntax.Identifier.ValueText);
-                            }
-                            break;
-
                         case OperationKind.ExpressionStatement:
                             {
                                 var expressionStatementOperation = (IExpressionStatementOperation)operation;
