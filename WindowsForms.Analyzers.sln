@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindowsForms.Package", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindowsForms.Vsix", "src\WindowsForms.Vsix\WindowsForms.Vsix.csproj", "{4D4CB9B1-CD8F-4EDD-B2AB-A84FD9011DA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsForms.Test", "tests\WindowsForms.Test\WindowsForms.Test.csproj", "{47296EEB-161E-4445-B90F-55E5D2C15BC8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindowsForms.Analyzers.Tests", "tests\WindowsForms.Analyzers.Tests\WindowsForms.Analyzers.Tests.csproj", "{47296EEB-161E-4445-B90F-55E5D2C15BC8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestApp", "tests\App\TestApp.csproj", "{6B254D4B-E3D5-46FB-9024-1E944FD712A6}"
 EndProject

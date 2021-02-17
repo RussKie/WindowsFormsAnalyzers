@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Testing;
 using Microsoft.CodeAnalysis.Testing.Verifiers;
 
 namespace WindowsForms.Test
@@ -13,6 +14,8 @@ namespace WindowsForms.Test
         {
             public Test()
             {
+                ReferenceAssemblies = ReferenceAssemblies.NetFramework.Net472.WindowsForms;
+
                 SolutionTransforms.Add((solution, projectId) =>
                 {
                     var compilationOptions = solution.GetProject(projectId).CompilationOptions;

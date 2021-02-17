@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Testing;
 using Microsoft.CodeAnalysis.Testing.Verifiers;
 using Microsoft.CodeAnalysis.VisualBasic.Testing;
 
@@ -11,6 +12,7 @@ namespace WindowsForms.Test
         {
             public Test()
             {
+                ReferenceAssemblies = ReferenceAssemblies.NetFramework.Net472.WindowsForms;
             }
         }
     }

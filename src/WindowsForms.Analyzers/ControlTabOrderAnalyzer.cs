@@ -28,7 +28,7 @@ namespace WindowsForms.Analyzers
 
         private const string Category = "Accessibility";
 
-        private static readonly DiagnosticDescriptor NonNumericTabIndexValueRule
+        internal static readonly DiagnosticDescriptor s_nonNumericTabIndexValueRule
             = new(DiagnosticIds.NonNumericTabIndexValue,
                   "Ensure numeric controls tab order value",
                   "Control '{0}' has unexpected TabIndex value: '{1}'.",
@@ -37,7 +37,7 @@ namespace WindowsForms.Analyzers
                   isEnabledByDefault: true,
                   "Avoid manually editing \"InitializeComponent()\" method.");
 
-        private static readonly DiagnosticDescriptor InconsistentTabIndexRule
+        internal static readonly DiagnosticDescriptor s_inconsistentTabIndexRule
             = new(DiagnosticIds.InconsistentTabIndex,
                   "Verify correct controls tab order",
                   "Control '{0}' has ordinal index of {1} but sets a different TabIndex of {2}.",
@@ -54,7 +54,7 @@ namespace WindowsForms.Analyzers
 
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
-            => ImmutableArray.Create(InconsistentTabIndexRule, NonNumericTabIndexValueRule);
+            => ImmutableArray.Create(s_inconsistentTabIndexRule, s_nonNumericTabIndexValueRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -67,9 +67,7 @@ namespace WindowsForms.Analyzers
         private void CodeBlockAction(OperationBlockAnalysisContext context)
         {
             // We only care about "InitializeComponent" method.
-            if (context.OwningSymbol is
-                    not { Kind: SymbolKind.Method, Name: "InitializeComponent" } and
-                    not { Kind: SymbolKind.Field }) // TODO: fields contained in the same class as InitializeComponent
+            if (context.OwningSymbol is not { Kind: SymbolKind.Method, Name: "InitializeComponent" })
             {
                 return;
             }
@@ -155,10 +153,7 @@ namespace WindowsForms.Analyzers
                         continue;
                     }
 
-                    // If the key exists in _controlsAddIndex, it exists _controlsAddIndexLocations
-                    var syntaxTree = _controlsAddIndexLocations[key];
-
-                    Diagnostic diagnostic = Diagnostic.Create(InconsistentTabIndexRule,
+                    Diagnostic diagnostic = Diagnostic.Create(s_inconsistentTabIndexRule,
                         location: _controlsAddIndexLocations[key],
                         key, addIndex, tabIndex);
                     context.ReportDiagnostic(diagnostic);
@@ -230,7 +225,7 @@ namespace WindowsForms.Analyzers
 
             if (expressionSyntax.Right is not LiteralExpressionSyntax propertyValueExpressionSyntax)
             {
-                var diagnostic = Diagnostic.Create(NonNumericTabIndexValueRule,
+                var diagnostic = Diagnostic.Create(s_nonNumericTabIndexValueRule,
                     Location.Create(expressionSyntax.Right.SyntaxTree, expressionSyntax.Right.Span),
                     controlName,
                     expressionSyntax.Right.ToString());

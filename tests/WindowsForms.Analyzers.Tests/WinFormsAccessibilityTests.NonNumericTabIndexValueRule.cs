@@ -3,6 +3,7 @@
 
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using WindowsForms.Analyzers;
 using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
     WindowsForms.Analyzers.ControlTabOrderAnalyzer,
     WindowsForms.WinFormsAccessibilityCodeFixProvider>;
@@ -18,14 +19,15 @@ namespace WindowsForms.Test
             public async Task Non_numeric_TabIndex_should_produce_diagnostics()
             {
                 var test = @"
+using System.Windows.Forms;
+
 namespace WinFormsApp1
 {
-    partial class Form1
+    partial class Form1 : Form
     {
         private void InitializeComponent()
         {
             System.Windows.Forms.Button button1 = new System.Windows.Forms.Button();
-            button1.TabIndex = 0;
             System.Windows.Forms.Button button2 = new System.Windows.Forms.Button();
             button2.TabIndex = INDEX;
             // 
@@ -47,7 +49,8 @@ namespace WinFormsApp1
 }
 ";
 
-                await VerifyCS.VerifyAnalyzerAsync(test);
+                await VerifyCS.VerifyAnalyzerAsync(test,
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_nonNumericTabIndexValueRule).WithSpan(12, 32, 12, 37).WithArguments("button2", "INDEX"));
             }
         }
     }

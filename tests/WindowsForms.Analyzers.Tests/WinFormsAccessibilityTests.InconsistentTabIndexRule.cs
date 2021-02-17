@@ -3,6 +3,7 @@
 
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using WindowsForms.Analyzers;
 using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
     WindowsForms.Analyzers.ControlTabOrderAnalyzer,
     WindowsForms.WinFormsAccessibilityCodeFixProvider>;
@@ -17,10 +18,12 @@ namespace WindowsForms.Test
             [TestMethod]
             public async Task No_fields_no_locals_should_produce_no_diagnostics()
             {
-                var test = @"
+                string code = @"
+using System.Windows.Forms;
+
 namespace WinFormsApp1
 {
-    partial class Form1
+    partial class Form1 : Form
     {
         private void InitializeComponent()
         {
@@ -38,16 +41,18 @@ namespace WinFormsApp1
 }
 ";
 
-                await VerifyCS.VerifyAnalyzerAsync(test);
+                await VerifyCS.VerifyAnalyzerAsync(code);
             }
 
             [TestMethod]
             public async Task Fields_no_TabIndex_should_produce_no_diagnostics()
             {
-                var test = @"
+                string code = @"
+using System.Windows.Forms;
+
 namespace WinFormsApp1
 {
-    partial class Form1
+    partial class Form1 : Form
     {
         private void InitializeComponent()
         {
@@ -57,7 +62,6 @@ namespace WinFormsApp1
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(578, 398);
-            this.Controls.Add(button3);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.treeView1);
             this.Name = ""Form1"";
@@ -73,16 +77,18 @@ namespace WinFormsApp1
 }
 ";
 
-                await VerifyCS.VerifyAnalyzerAsync(test);
+                await VerifyCS.VerifyAnalyzerAsync(code);
             }
 
             [TestMethod]
             public async Task Fields_with_correct_TabIndex_should_produce_no_diagnostics()
             {
-                var test = @"
+                string code = @"
+using System.Windows.Forms;
+
 namespace WinFormsApp1
 {
-    partial class Form1
+    partial class Form1 : Form
     {
         private void InitializeComponent()
         {
@@ -111,16 +117,18 @@ namespace WinFormsApp1
 }
 ";
 
-                await VerifyCS.VerifyAnalyzerAsync(test);
+                await VerifyCS.VerifyAnalyzerAsync(code);
             }
 
             [TestMethod]
             public async Task Local_no_TabIndex_should_produce_no_diagnostics()
             {
-                var test = @"
+                string code = @"
+using System.Windows.Forms;
+
 namespace WinFormsApp1
 {
-    partial class Form1
+    partial class Form1 : Form
     {
         private void InitializeComponent()
         {
@@ -143,16 +151,18 @@ namespace WinFormsApp1
 }
 ";
 
-                await VerifyCS.VerifyAnalyzerAsync(test);
+                await VerifyCS.VerifyAnalyzerAsync(code);
             }
 
             [TestMethod]
             public async Task Local_with_correct_TabIndex_should_produce_no_diagnostics()
             {
-                var test = @"
+                string code = @"
+using System.Windows.Forms;
+
 namespace WinFormsApp1
 {
-    partial class Form1
+    partial class Form1 : Form
     {
         private void InitializeComponent()
         {
@@ -177,13 +187,19 @@ namespace WinFormsApp1
 }
 ";
 
-                await VerifyCS.VerifyAnalyzerAsync(test);
+                await VerifyCS.VerifyAnalyzerAsync(code);
             }
 
             [TestMethod]
-            public async Task TestMethod1()
+            public async Task Fields_and_locals_with_incorrect_TabIndex_should_produce_diagnostics()
             {
-                var test = @"
+                string code = @"
+using System.Windows.Forms;
+
+namespace WinFormsApp1
+{
+    partial class Form1 : Form
+    {
         private void InitializeComponent()
         {
             this.treeView1 = new System.Windows.Forms.TreeView();
@@ -246,9 +262,24 @@ namespace WinFormsApp1
             this.ResumeLayout(false);
 
         }
+
+        private System.Windows.Forms.TreeView treeView1;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button button2;
+    }
+}
 ";
 
-                await VerifyCS.VerifyAnalyzerAsync(test);
+                await VerifyCS.VerifyAnalyzerAsync(code,
+                    // /0/Test0.cs(61,13): warning WF0010: Control 'this.button2' has ordinal index of 0 but sets a different TabIndex of 2.
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(61, 13, 61, 30).WithArguments("this.button2", "0", "2"),
+                    // /0/Test0.cs(62,13): warning WF0010: Control 'button3' has ordinal index of 1 but sets a different TabIndex of 0.
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(62, 13, 62, 30).WithArguments("button3", "1", "0"),
+                    // /0/Test0.cs(63,13): warning WF0010: Control 'this.button1' has ordinal index of 2 but sets a different TabIndex of 1.
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(63, 13, 63, 30).WithArguments("this.button1", "2", "1"),
+                    // /0/Test0.cs(64,13): warning WF0010: Control 'this.treeView1' has ordinal index of 3 but sets a different TabIndex of 0.
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(64, 13, 64, 30).WithArguments("this.treeView1", "3", "0")
+                    );
             }
         }
     }
