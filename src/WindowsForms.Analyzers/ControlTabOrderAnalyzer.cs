@@ -91,14 +91,14 @@ namespace WindowsForms.Analyzers
                                 if (expressionStatementOperation.Operation is IOperation invocationOperation &&
                                     invocationOperation.Syntax is InvocationExpressionSyntax expressionSyntax)
                                 {
-                                    ParseControlAddStatements(context, expressionSyntax);
+                                    ParseControlAddStatements(expressionSyntax);
                                     continue;
                                 }
 
                                 // Look for ".TabIndex = <x>"
                                 if (expressionStatementOperation.Operation is IAssignmentOperation assignmentOperation)
                                 {
-                                    ParseTabIndexAssignments(context, (AssignmentExpressionSyntax)assignmentOperation.Syntax);
+                                    ParseTabIndexAssignments((AssignmentExpressionSyntax)assignmentOperation.Syntax, context);
                                     continue;
                                 }
 
@@ -153,7 +153,7 @@ namespace WindowsForms.Analyzers
                         continue;
                     }
 
-                    Diagnostic diagnostic = Diagnostic.Create(s_inconsistentTabIndexRule,
+                    var diagnostic = Diagnostic.Create(s_inconsistentTabIndexRule,
                         location: _controlsAddIndexLocations[key],
                         key, addIndex, tabIndex);
                     context.ReportDiagnostic(diagnostic);
@@ -162,7 +162,7 @@ namespace WindowsForms.Analyzers
             }
         }
 
-        private void ParseControlAddStatements(OperationBlockAnalysisContext context, InvocationExpressionSyntax expressionSyntax)
+        private void ParseControlAddStatements(InvocationExpressionSyntax expressionSyntax)
         {
             if (!expressionSyntax.Expression.ToString().EndsWith(".Controls.Add"))
             {
@@ -203,10 +203,10 @@ namespace WindowsForms.Analyzers
             }
 
             _controlsAddIndex[container].Add(controlName);
-            _controlsAddIndexLocations[controlName] = Location.Create(syntax.SyntaxTree, syntax.Span);
+            _controlsAddIndexLocations[controlName] = syntax.Parent.GetLocation(); // Location.Create(syntax.SyntaxTree, syntax.Span);
         }
 
-        private void ParseTabIndexAssignments(OperationBlockAnalysisContext context, AssignmentExpressionSyntax expressionSyntax)
+        private void ParseTabIndexAssignments(AssignmentExpressionSyntax expressionSyntax, OperationBlockAnalysisContext context)
         {
             var propertyNameExpressionSyntax = (MemberAccessExpressionSyntax)expressionSyntax.Left;
             SimpleNameSyntax propertyNameSyntax = propertyNameExpressionSyntax.Name;
@@ -226,7 +226,7 @@ namespace WindowsForms.Analyzers
             if (expressionSyntax.Right is not LiteralExpressionSyntax propertyValueExpressionSyntax)
             {
                 var diagnostic = Diagnostic.Create(s_nonNumericTabIndexValueRule,
-                    Location.Create(expressionSyntax.Right.SyntaxTree, expressionSyntax.Right.Span),
+                    expressionSyntax.Right.GetLocation(),
                     controlName,
                     expressionSyntax.Right.ToString());
                 context.ReportDiagnostic(diagnostic);

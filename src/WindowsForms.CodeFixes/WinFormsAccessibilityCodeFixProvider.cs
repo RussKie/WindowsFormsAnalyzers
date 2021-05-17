@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Rename;
@@ -16,8 +17,8 @@ using WindowsForms.Analyzers;
 
 namespace WindowsForms
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(WinFormsAccessibilityCodeFixProvider)), Shared]
-    public class WinFormsAccessibilityCodeFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ControlTabOrderAnalyzerCodeFixProvider)), Shared]
+    public class ControlTabOrderAnalyzerCodeFixProvider : CodeFixProvider
     {
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
@@ -67,6 +68,18 @@ namespace WindowsForms
 
             // Return the new solution with the now-uppercase type name.
             return newSolution;
+        }
+    }
+
+    [ExportCodeRefactoringProvider(LanguageNames.CSharp, Name = nameof(ControlTabOrderAnalyzerCodeRefactoringProvider)), Shared]
+
+    public class ControlTabOrderAnalyzerCodeRefactoringProvider : CodeRefactoringProvider
+    {
+        public override async Task ComputeRefactoringsAsync(CodeRefactoringContext context)
+        {
+            var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
+
+            throw new System.NotImplementedException();
         }
     }
 }

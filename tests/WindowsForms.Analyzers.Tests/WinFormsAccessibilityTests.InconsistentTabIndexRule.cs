@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WindowsForms.Analyzers;
 using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
     WindowsForms.Analyzers.ControlTabOrderAnalyzer,
-    WindowsForms.WinFormsAccessibilityCodeFixProvider>;
+    WindowsForms.ControlTabOrderAnalyzerCodeFixProvider>;
 
 namespace WindowsForms.Test
 {
