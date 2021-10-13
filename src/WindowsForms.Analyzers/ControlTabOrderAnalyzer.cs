@@ -153,8 +153,10 @@ namespace WindowsForms.Analyzers
                         continue;
                     }
 
-                    var diagnostic = Diagnostic.Create(s_inconsistentTabIndexRule,
+                    var diagnostic = Diagnostic.Create(
+                        descriptor: s_inconsistentTabIndexRule,
                         location: _controlsAddIndexLocations[key],
+                        properties: new Dictionary<string, string> { { "ZOrder", addIndex.ToString() }, { "TabIndex", tabIndex.ToString() } }.ToImmutableDictionary(),
                         key, addIndex, tabIndex);
                     context.ReportDiagnostic(diagnostic);
                 }
@@ -203,7 +205,7 @@ namespace WindowsForms.Analyzers
             }
 
             _controlsAddIndex[container].Add(controlName);
-            _controlsAddIndexLocations[controlName] = syntax.Parent.GetLocation(); // Location.Create(syntax.SyntaxTree, syntax.Span);
+            _controlsAddIndexLocations[controlName] = syntax.Parent.Parent.GetLocation();
         }
 
         private void ParseTabIndexAssignments(AssignmentExpressionSyntax expressionSyntax, OperationBlockAnalysisContext context)
@@ -225,8 +227,9 @@ namespace WindowsForms.Analyzers
 
             if (expressionSyntax.Right is not LiteralExpressionSyntax propertyValueExpressionSyntax)
             {
-                var diagnostic = Diagnostic.Create(s_nonNumericTabIndexValueRule,
-                    expressionSyntax.Right.GetLocation(),
+                var diagnostic = Diagnostic.Create(
+                    descriptor: s_nonNumericTabIndexValueRule,
+                    location: expressionSyntax.Right.GetLocation(),
                     controlName,
                     expressionSyntax.Right.ToString());
                 context.ReportDiagnostic(diagnostic);
