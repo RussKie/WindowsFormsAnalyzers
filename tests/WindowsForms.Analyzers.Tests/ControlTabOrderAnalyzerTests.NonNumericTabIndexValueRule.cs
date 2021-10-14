@@ -10,7 +10,7 @@ using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
 
 namespace WindowsForms.Test
 {
-    public partial class WinFormsAccessibilityTests
+    public partial class ControlTabOrderAnalyzerTests
     {
         [TestClass]
         public class NonNumericTabIndexValueRule
@@ -50,7 +50,7 @@ namespace WinFormsApp1
 ";
 
                 await VerifyCS.VerifyAnalyzerAsync(test,
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_nonNumericTabIndexValueRule).WithSpan(12, 32, 12, 37).WithArguments("button2", "INDEX"));
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.NonNumericTabIndexValueRuleIdDescriptor).WithSpan(12, 32, 12, 37).WithArguments("button2", "INDEX"));
             }
         }
     }

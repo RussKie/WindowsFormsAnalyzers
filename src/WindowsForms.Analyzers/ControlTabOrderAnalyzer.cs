@@ -12,36 +12,25 @@ using Microsoft.CodeAnalysis.Operations;
 namespace WindowsForms.Analyzers
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class ControlTabOrderAnalyzer : DiagnosticAnalyzer
+    public sealed class ControlTabOrderAnalyzer : DiagnosticAnalyzer
     {
-        public static class DiagnosticIds
-        {
-
-            public const string NonNumericTabIndexValue = "WF0001";
-
-            public const string InconsistentTabIndex = "WF0010";
-
-        }
-
         // You can change these strings in the Resources.resx file. If you do not want your analyzer to be localize-able, you can use regular strings for Title and MessageFormat.
         // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Localizing%20Analyzers.md for more on localization
 
-        private const string Category = "Accessibility";
-
-        internal static readonly DiagnosticDescriptor s_nonNumericTabIndexValueRule
-            = new(DiagnosticIds.NonNumericTabIndexValue,
+        public static readonly DiagnosticDescriptor NonNumericTabIndexValueRuleIdDescriptor
+            = new(DiagnosticIds.NonNumericTabIndexValueRuleId,
                   "Ensure numeric controls tab order value",
                   "Control '{0}' has unexpected TabIndex value: '{1}'",
-                  Category,
+                  DiagnosticCategory.AccessibilityCategory,
                   DiagnosticSeverity.Warning,
                   isEnabledByDefault: true,
                   "Avoid manually editing \"InitializeComponent()\" method.");
 
-        internal static readonly DiagnosticDescriptor s_inconsistentTabIndexRule
-            = new(DiagnosticIds.InconsistentTabIndex,
+        public static readonly DiagnosticDescriptor InconsistentTabIndexRuleIdDescriptor
+            = new(DiagnosticIds.InconsistentTabIndexRuleId,
                   "Verify correct controls tab order",
                   "Control '{0}' has ordinal index of {1} but sets a different TabIndex of {2}",
-                  Category,
+                  DiagnosticCategory.AccessibilityCategory,
                   DiagnosticSeverity.Warning,
                   isEnabledByDefault: true,
                   "Remove TabIndex assignments and re-order controls in the parent's control collection.");
@@ -54,7 +43,7 @@ namespace WindowsForms.Analyzers
 
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
-            => ImmutableArray.Create(s_inconsistentTabIndexRule, s_nonNumericTabIndexValueRule);
+            => ImmutableArray.Create(InconsistentTabIndexRuleIdDescriptor, NonNumericTabIndexValueRuleIdDescriptor);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -154,9 +143,9 @@ namespace WindowsForms.Analyzers
                     }
 
                     var diagnostic = Diagnostic.Create(
-                        descriptor: s_inconsistentTabIndexRule,
+                        descriptor: InconsistentTabIndexRuleIdDescriptor,
                         location: _controlsAddIndexLocations[key],
-                        properties: new Dictionary<string, string> { { "ZOrder", addIndex.ToString() }, { "TabIndex", tabIndex.ToString() } }.ToImmutableDictionary(),
+                        properties: new Dictionary<string, string?> { { "ZOrder", addIndex.ToString() }, { "TabIndex", tabIndex.ToString() } }.ToImmutableDictionary(),
                         key, addIndex, tabIndex);
                     context.ReportDiagnostic(diagnostic);
                 }
@@ -228,7 +217,7 @@ namespace WindowsForms.Analyzers
             if (expressionSyntax.Right is not LiteralExpressionSyntax propertyValueExpressionSyntax)
             {
                 var diagnostic = Diagnostic.Create(
-                    descriptor: s_nonNumericTabIndexValueRule,
+                    descriptor: NonNumericTabIndexValueRuleIdDescriptor,
                     location: expressionSyntax.Right.GetLocation(),
                     controlName,
                     expressionSyntax.Right.ToString());

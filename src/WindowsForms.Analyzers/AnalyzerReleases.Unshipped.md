@@ -4,5 +4,5 @@
 ### New Rules
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
-WF0001 | Accessibility | Warning | ControlTabOrderAnalyzer
-WF0010 | Accessibility | Warning | ControlTabOrderAnalyzer
+WF1001 | Accessibility | Warning | ControlTabOrderAnalyzer
+WF1002 | Accessibility | Warning | ControlTabOrderAnalyzer

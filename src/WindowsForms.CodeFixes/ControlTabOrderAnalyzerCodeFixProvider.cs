@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Options;
@@ -24,7 +23,7 @@ namespace WindowsForms
     {
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(ControlTabOrderAnalyzer.DiagnosticIds.NonNumericTabIndexValue); }
+            get { return ImmutableArray.Create(DiagnosticIds.NonNumericTabIndexValueRuleId); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()

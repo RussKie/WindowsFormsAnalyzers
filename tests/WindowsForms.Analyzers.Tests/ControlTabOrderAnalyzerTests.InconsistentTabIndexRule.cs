@@ -10,7 +10,7 @@ using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
 
 namespace WindowsForms.Test
 {
-    public partial class WinFormsAccessibilityTests
+    public partial class ControlTabOrderAnalyzerTests
     {
         [TestClass]
         public class InconsistentTabIndexRule
@@ -272,13 +272,13 @@ namespace WinFormsApp1
 
                 await VerifyCS.VerifyAnalyzerAsync(code,
                     // /0/Test0.cs(61,13): warning WF0010: Control 'this.button2' has ordinal index of 0 but sets a different TabIndex of 2.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(61, 13, 61, 45).WithArguments("this.button2", "0", "2"),
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(61, 13, 61, 45).WithArguments("this.button2", "0", "2"),
                     // /0/Test0.cs(62,13): warning WF0010: Control 'button3' has ordinal index of 1 but sets a different TabIndex of 0.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(62, 13, 62, 40).WithArguments("button3", "1", "0"),
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(62, 13, 62, 40).WithArguments("button3", "1", "0"),
                     // /0/Test0.cs(63,13): warning WF0010: Control 'this.button1' has ordinal index of 2 but sets a different TabIndex of 1.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(63, 13, 63, 45).WithArguments("this.button1", "2", "1"),
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(63, 13, 63, 45).WithArguments("this.button1", "2", "1"),
                     // /0/Test0.cs(64,13): warning WF0010: Control 'this.treeView1' has ordinal index of 3 but sets a different TabIndex of 0.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.s_inconsistentTabIndexRule).WithSpan(64, 13, 64, 47).WithArguments("this.treeView1", "3", "0")
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(64, 13, 64, 47).WithArguments("this.treeView1", "3", "0")
                     );
             }
         }
