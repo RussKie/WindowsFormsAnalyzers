@@ -6,3 +6,5 @@ Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 WF1001 | Accessibility | Warning | ControlTabOrderAnalyzer
 WF1002 | Accessibility | Warning | ControlTabOrderAnalyzer
+WF1003 | Accessibility | Warning | AccessiblePropertiesAnalyzer
+WF1004 | Accessibility | Warning | AccessiblePropertiesAnalyzer

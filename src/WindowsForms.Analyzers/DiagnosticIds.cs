@@ -7,5 +7,7 @@ namespace WindowsForms.Analyzers
     {
         public const string NonNumericTabIndexValueRuleId   = "WF1001";
         public const string InconsistentTabIndexRuleId      = "WF1002";
+        public const string AccessibleNameNotSetRuleId      = "WF1003";
+        public const string AccessibleNameEmptyRuleId       = "WF1004";
     }
 }
