@@ -31,7 +31,7 @@ namespace WindowsForms.Analyzers
         internal static readonly DiagnosticDescriptor s_nonNumericTabIndexValueRule
             = new(DiagnosticIds.NonNumericTabIndexValue,
                   "Ensure numeric controls tab order value",
-                  "Control '{0}' has unexpected TabIndex value: '{1}'.",
+                  "Control '{0}' has unexpected TabIndex value: '{1}'",
                   Category,
                   DiagnosticSeverity.Warning,
                   isEnabledByDefault: true,
@@ -40,7 +40,7 @@ namespace WindowsForms.Analyzers
         internal static readonly DiagnosticDescriptor s_inconsistentTabIndexRule
             = new(DiagnosticIds.InconsistentTabIndex,
                   "Verify correct controls tab order",
-                  "Control '{0}' has ordinal index of {1} but sets a different TabIndex of {2}.",
+                  "Control '{0}' has ordinal index of {1} but sets a different TabIndex of {2}",
                   Category,
                   DiagnosticSeverity.Warning,
                   isEnabledByDefault: true,
@@ -205,7 +205,7 @@ namespace WindowsForms.Analyzers
             }
 
             _controlsAddIndex[container].Add(controlName);
-            _controlsAddIndexLocations[controlName] = syntax.Parent.Parent.GetLocation();
+            _controlsAddIndexLocations[controlName] = syntax.Parent!.Parent!.GetLocation();
         }
 
         private void ParseTabIndexAssignments(AssignmentExpressionSyntax expressionSyntax, OperationBlockAnalysisContext context)
@@ -236,7 +236,9 @@ namespace WindowsForms.Analyzers
                 return;
             }
 
+#pragma warning disable CS8605 // Unboxing a possibly null value.
             int tabIndexValue = (int)propertyValueExpressionSyntax.Token.Value;
+#pragma warning restore CS8605 // Unboxing a possibly null value.
 
             // "button3:0"
             _controlsTabIndex[controlName] = tabIndexValue;
