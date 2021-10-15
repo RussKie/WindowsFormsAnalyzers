@@ -8,12 +8,11 @@ using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
     WindowsForms.Analyzers.ControlTabOrderAnalyzer,
     WindowsForms.ControlTabOrderAnalyzerCodeFixProvider>;
 
-namespace WindowsForms.Test
+namespace WindowsForms.Analyzers.Tests
 {
-    public partial class ControlTabOrderAnalyzerTests
+    partial class ControlTabOrderAnalyzerTests
     {
-        [TestClass]
-        public class InconsistentTabIndexRule
+        partial class InconsistentTabIndexRule
         {
             [TestMethod]
             public async Task No_fields_no_locals_should_produce_no_diagnostics()
