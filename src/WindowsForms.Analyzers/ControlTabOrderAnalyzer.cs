@@ -35,12 +35,6 @@ namespace WindowsForms.Analyzers
                   isEnabledByDefault: true,
                   "Remove TabIndex assignments and re-order controls in the parent's control collection.");
 
-        // Contains the list of fields and local controls that explicitly set TabIndex properties.
-        private readonly Dictionary<string, int> _controlsTabIndex = new();
-        // Contains the list of fields and local controls in order those are added to parent controls.
-        private readonly Dictionary<string, List<string>> _controlsAddIndex = new();
-        private readonly Dictionary<string, Location> _controlsAddIndexLocations = new();
-
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
             => ImmutableArray.Create(InconsistentTabIndexRuleIdDescriptor, NonNumericTabIndexValueRuleIdDescriptor);
@@ -68,6 +62,7 @@ namespace WindowsForms.Analyzers
                     continue;
                 }
 
+                CalculatedAnalysisContext calculatedContext = new();
                 foreach (IOperation operation in blockOperation.Operations)
                 {
                     switch (operation.Kind)
@@ -80,14 +75,14 @@ namespace WindowsForms.Analyzers
                                 if (expressionStatementOperation.Operation is IOperation invocationOperation &&
                                     invocationOperation.Syntax is InvocationExpressionSyntax expressionSyntax)
                                 {
-                                    ParseControlAddStatements(expressionSyntax);
+                                    ParseControlAddStatements(expressionSyntax, calculatedContext);
                                     continue;
                                 }
 
                                 // Look for ".TabIndex = <x>"
                                 if (expressionStatementOperation.Operation is IAssignmentOperation assignmentOperation)
                                 {
-                                    ParseTabIndexAssignments((AssignmentExpressionSyntax)assignmentOperation.Syntax, context);
+                                    ParseTabIndexAssignments((AssignmentExpressionSyntax)assignmentOperation.Syntax, context, calculatedContext);
                                     continue;
                                 }
 
@@ -99,7 +94,7 @@ namespace WindowsForms.Analyzers
                     }
                 }
 
-                if (_controlsTabIndex.Count < 1)
+                if (calculatedContext.ControlsTabIndex.Count < 1)
                 {
                     // No controls explicitly set TabIndex - all good
                     return;
@@ -116,17 +111,17 @@ namespace WindowsForms.Analyzers
                 //      [this.button1:1]
                 //      [label2:0]
                 Dictionary<string, int> flatControlsAddIndex = new();
-                foreach (string key in _controlsAddIndex.Keys)
+                foreach (string key in calculatedContext.ControlsAddIndex.Keys)
                 {
-                    for (int i = 0; i < _controlsAddIndex[key].Count; i++)
+                    for (int i = 0; i < calculatedContext.ControlsAddIndex[key].Count; i++)
                     {
-                        string controlName = _controlsAddIndex[key][i];
+                        string controlName = calculatedContext.ControlsAddIndex[key][i];
                         flatControlsAddIndex[controlName] = i;
                     }
                 }
 
                 // Verify explicit TabIndex is the same as the "add order"
-                foreach (string key in _controlsTabIndex.Keys)
+                foreach (string key in calculatedContext.ControlsTabIndex.Keys)
                 {
                     if (!flatControlsAddIndex.ContainsKey(key))
                     {
@@ -134,7 +129,7 @@ namespace WindowsForms.Analyzers
                         continue;
                     }
 
-                    int tabIndex = _controlsTabIndex[key];
+                    int tabIndex = calculatedContext.ControlsTabIndex[key];
                     int addIndex = flatControlsAddIndex[key];
 
                     if (tabIndex == addIndex)
@@ -144,16 +139,15 @@ namespace WindowsForms.Analyzers
 
                     var diagnostic = Diagnostic.Create(
                         descriptor: InconsistentTabIndexRuleIdDescriptor,
-                        location: _controlsAddIndexLocations[key],
+                        location: calculatedContext.ControlsAddIndexLocations[key],
                         properties: new Dictionary<string, string?> { { "ZOrder", addIndex.ToString() }, { "TabIndex", tabIndex.ToString() } }.ToImmutableDictionary(),
                         key, addIndex, tabIndex);
                     context.ReportDiagnostic(diagnostic);
                 }
-
             }
         }
 
-        private void ParseControlAddStatements(InvocationExpressionSyntax expressionSyntax)
+        private void ParseControlAddStatements(InvocationExpressionSyntax expressionSyntax, CalculatedAnalysisContext calculatedContext)
         {
             if (!expressionSyntax.Expression.ToString().EndsWith(".Controls.Add"))
             {
@@ -188,16 +182,16 @@ namespace WindowsForms.Analyzers
             //      [this.Controls.Add]   : new List { button3, this.button1 }
             //      [panel1.Controls.Add] : new List { label2 }
 
-            if (!_controlsAddIndex.ContainsKey(container))
+            if (!calculatedContext.ControlsAddIndex.ContainsKey(container))
             {
-                _controlsAddIndex[container] = new List<string>();
+                calculatedContext.ControlsAddIndex[container] = new List<string>();
             }
 
-            _controlsAddIndex[container].Add(controlName);
-            _controlsAddIndexLocations[controlName] = syntax.Parent!.Parent!.GetLocation();
+            calculatedContext.ControlsAddIndex[container].Add(controlName);
+            calculatedContext.ControlsAddIndexLocations[controlName] = syntax.Parent!.Parent!.GetLocation();
         }
 
-        private void ParseTabIndexAssignments(AssignmentExpressionSyntax expressionSyntax, OperationBlockAnalysisContext context)
+        private void ParseTabIndexAssignments(AssignmentExpressionSyntax expressionSyntax, OperationBlockAnalysisContext context, CalculatedAnalysisContext calculatedContext)
         {
             var propertyNameExpressionSyntax = (MemberAccessExpressionSyntax)expressionSyntax.Left;
             SimpleNameSyntax propertyNameSyntax = propertyNameExpressionSyntax.Name;
@@ -230,7 +224,7 @@ namespace WindowsForms.Analyzers
 #pragma warning restore CS8605 // Unboxing a possibly null value.
 
             // "button3:0"
-            _controlsTabIndex[controlName] = tabIndexValue;
+            calculatedContext.ControlsTabIndex[controlName] = tabIndexValue;
         }
 
         private static string? GetControlName(ExpressionSyntax expressionSyntax)
@@ -244,5 +238,14 @@ namespace WindowsForms.Analyzers
 
                 _ => null,
             };
+
+        private sealed class CalculatedAnalysisContext
+        {
+            // Contains the list of fields and local controls that explicitly set TabIndex properties.
+            public Dictionary<string, int> ControlsTabIndex { get; } = new();
+            // Contains the list of fields and local controls in order those are added to parent controls.
+            public Dictionary<string, List<string>> ControlsAddIndex { get; } = new();
+            public Dictionary<string, Location> ControlsAddIndexLocations { get; } = new();
+        }
     }
 }
