@@ -15,7 +15,7 @@ namespace WindowsForms.Analyzers.Tests
         partial class NonNumericTabIndexValueRule
         {
             [TestMethod]
-            public async Task Non_numeric_TabIndex_should_produce_diagnostics()
+            public async Task Analyzer_non_numeric_TabIndex_should_produce_diagnostics()
             {
                 var test = @"
 using System.Windows.Forms;

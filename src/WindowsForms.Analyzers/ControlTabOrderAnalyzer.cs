@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -100,6 +101,8 @@ namespace WindowsForms.Analyzers
                     return;
                 }
 
+                Dictionary<string, List<Location>> containerProperties = BuildContainerAddLocations(calculatedContext.ContainerAddLocations);
+
                 // _controlsAddIndex dictionary, which looks something like this:
                 //
                 //      [this.Controls.Add]   : new List { button3, this.button1 }
@@ -111,40 +114,97 @@ namespace WindowsForms.Analyzers
                 //      [this.button1:1]
                 //      [label2:0]
                 Dictionary<string, int> flatControlsAddIndex = new();
-                foreach (string key in calculatedContext.ControlsAddIndex.Keys)
+                Dictionary<string, string> containersByControl = new();
+                foreach (string containerName in calculatedContext.ControlsAddIndex.Keys)
                 {
-                    for (int i = 0; i < calculatedContext.ControlsAddIndex[key].Count; i++)
+                    for (int i = 0; i < calculatedContext.ControlsAddIndex[containerName].Count; i++)
                     {
-                        string controlName = calculatedContext.ControlsAddIndex[key][i];
+                        string controlName = calculatedContext.ControlsAddIndex[containerName][i];
                         flatControlsAddIndex[controlName] = i;
+
+                        containersByControl[controlName] = containerName;
                     }
                 }
 
                 // Verify explicit TabIndex is the same as the "add order"
-                foreach (string key in calculatedContext.ControlsTabIndex.Keys)
+                foreach (string controlName in calculatedContext.ControlsTabIndex.Keys)
                 {
-                    if (!flatControlsAddIndex.ContainsKey(key))
+                    if (!flatControlsAddIndex.ContainsKey(controlName))
                     {
                         // TODO: assert, diagnostics, etc.
                         continue;
                     }
 
-                    int tabIndex = calculatedContext.ControlsTabIndex[key];
-                    int addIndex = flatControlsAddIndex[key];
+                    int tabIndex = calculatedContext.ControlsTabIndex[controlName];
+                    int addIndex = flatControlsAddIndex[controlName];
 
                     if (tabIndex == addIndex)
                     {
                         continue;
                     }
 
+                    string containerName = containersByControl[controlName];
+                    Dictionary<string, string?> properties = new();
+                    properties["ZOrder"] = addIndex.ToString();
+                    properties["TabIndex"] = tabIndex.ToString();
+
                     var diagnostic = Diagnostic.Create(
                         descriptor: InconsistentTabIndexRuleIdDescriptor,
-                        location: calculatedContext.ControlsAddIndexLocations[key],
-                        properties: new Dictionary<string, string?> { { "ZOrder", addIndex.ToString() }, { "TabIndex", tabIndex.ToString() } }.ToImmutableDictionary(),
-                        key, addIndex, tabIndex);
+                        location: calculatedContext.ControlsAddIndexLocations[controlName],
+                        additionalLocations: containerProperties[containerName],
+                        properties.ToImmutableDictionary(),
+                        controlName, addIndex, tabIndex);
                     context.ReportDiagnostic(diagnostic);
                 }
             }
+        }
+
+        private static Dictionary<string, List<Location>> BuildContainerAddLocations(in Dictionary<string, List<Location>> containerAddLocations)
+        {
+            Dictionary<string, List<Location>> containerProperties = new();
+
+            // Check that 'container.Controls.Add(...)' statements are consequitive.
+            // If not - the code has been manually modified, we won't be able to provide an auto-fix.
+            foreach (string containerName in containerAddLocations.Keys)
+            {
+                containerProperties[containerName] = new();
+
+                Location startLine = Location.None;
+                Location endLine = Location.None;
+                List<int> lines = new();
+                foreach (Location location in containerAddLocations[containerName])
+                {
+                    if (startLine == Location.None || startLine.GetLineSpan().StartLinePosition.Line > location.GetLineSpan().StartLinePosition.Line)
+                    {
+                        startLine = location;
+                    }
+
+                    if (endLine.GetLineSpan().StartLinePosition.Line < location.GetLineSpan().StartLinePosition.Line)
+                    {
+                        endLine = location;
+                    }
+
+                    lines.Add(location.GetLineSpan().StartLinePosition.Line);
+                }
+
+                Debug.Assert(startLine != Location.None);
+                Debug.Assert(endLine != Location.None);
+
+                if (startLine == endLine)
+                {
+                    // A single control with an invalid TabIndex
+                }
+                else if (Enumerable.Range(startLine.GetLineSpan().StartLinePosition.Line, endLine.GetLineSpan().StartLinePosition.Line - startLine.GetLineSpan().StartLinePosition.Line).Except(lines).Any())
+                {
+                    // 'container.Controls.Add(...)' statements aren't consequitive.
+                }
+                else
+                {
+                    containerProperties[containerName] = containerAddLocations[containerName];
+                }
+            }
+
+            return containerProperties;
         }
 
         private void ParseControlAddStatements(InvocationExpressionSyntax expressionSyntax, CalculatedAnalysisContext calculatedContext)
@@ -169,7 +229,7 @@ namespace WindowsForms.Analyzers
 
             // this is something like "this.Controls.Add" or "panel1.Controls.Add", but good enough for our intents and purposes
             ExpressionSyntax? syntax = expressionSyntax.Expression;
-            string container = syntax.ToString();
+            string containerName = syntax.ToString();
 
             // Transform "Controls.Add" statements into a map. E.g.:
             //
@@ -182,13 +242,20 @@ namespace WindowsForms.Analyzers
             //      [this.Controls.Add]   : new List { button3, this.button1 }
             //      [panel1.Controls.Add] : new List { label2 }
 
-            if (!calculatedContext.ControlsAddIndex.ContainsKey(container))
+            if (!calculatedContext.ControlsAddIndex.ContainsKey(containerName))
             {
-                calculatedContext.ControlsAddIndex[container] = new List<string>();
+                calculatedContext.ControlsAddIndex[containerName] = new List<string>();
             }
 
-            calculatedContext.ControlsAddIndex[container].Add(controlName);
-            calculatedContext.ControlsAddIndexLocations[controlName] = syntax.Parent!.Parent!.GetLocation();
+            calculatedContext.ControlsAddIndex[containerName].Add(controlName);
+            calculatedContext.ControlsAddIndexLocations[controlName] = syntax.Parent!.Parent!.GetLocation(); // e.g.: 'this.Controls.Add(button3);'
+
+            if (!calculatedContext.ContainerAddLocations.ContainsKey(containerName))
+            {
+                calculatedContext.ContainerAddLocations[containerName] = new();
+            }
+
+            calculatedContext.ContainerAddLocations[containerName].Add(calculatedContext.ControlsAddIndexLocations[controlName]);
         }
 
         private void ParseTabIndexAssignments(AssignmentExpressionSyntax expressionSyntax, OperationBlockAnalysisContext context, CalculatedAnalysisContext calculatedContext)
@@ -246,6 +313,8 @@ namespace WindowsForms.Analyzers
             // Contains the list of fields and local controls in order those are added to parent controls.
             public Dictionary<string, List<string>> ControlsAddIndex { get; } = new();
             public Dictionary<string, Location> ControlsAddIndexLocations { get; } = new();
+
+            public Dictionary<string, List<Location>> ContainerAddLocations { get; } = new();
         }
     }
 }
