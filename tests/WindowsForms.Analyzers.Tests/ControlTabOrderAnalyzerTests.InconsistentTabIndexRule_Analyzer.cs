@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Igor Velikorossov. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Testing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WindowsForms.Analyzers;
 using VerifyCS = WindowsForms.Test.CSharpCodeFixVerifier<
@@ -15,7 +17,7 @@ namespace WindowsForms.Analyzers.Tests
         partial class InconsistentTabIndexRule
         {
             [TestMethod]
-            public async Task No_fields_no_locals_should_produce_no_diagnostics()
+            public async Task Analyzer_no_fields_no_locals_should_produce_no_diagnostics()
             {
                 string code = @"
 using System.Windows.Forms;
@@ -44,7 +46,7 @@ namespace WinFormsApp1
             }
 
             [TestMethod]
-            public async Task Fields_no_TabIndex_should_produce_no_diagnostics()
+            public async Task Analyzer_fields_no_TabIndex_should_produce_no_diagnostics()
             {
                 string code = @"
 using System.Windows.Forms;
@@ -80,7 +82,7 @@ namespace WinFormsApp1
             }
 
             [TestMethod]
-            public async Task Fields_with_correct_TabIndex_should_produce_no_diagnostics()
+            public async Task Analyzer_fields_with_correct_TabIndex_should_produce_no_diagnostics()
             {
                 string code = @"
 using System.Windows.Forms;
@@ -120,7 +122,7 @@ namespace WinFormsApp1
             }
 
             [TestMethod]
-            public async Task Local_no_TabIndex_should_produce_no_diagnostics()
+            public async Task Analyzer_local_no_TabIndex_should_produce_no_diagnostics()
             {
                 string code = @"
 using System.Windows.Forms;
@@ -154,7 +156,7 @@ namespace WinFormsApp1
             }
 
             [TestMethod]
-            public async Task Local_with_correct_TabIndex_should_produce_no_diagnostics()
+            public async Task Analyzer_local_with_correct_TabIndex_should_produce_no_diagnostics()
             {
                 string code = @"
 using System.Windows.Forms;
@@ -190,7 +192,7 @@ namespace WinFormsApp1
             }
 
             [TestMethod]
-            public async Task Fields_and_locals_with_incorrect_TabIndex_should_produce_diagnostics()
+            public async Task Analyzer_fields_and_locals_with_incorrect_TabIndex_should_produce_diagnostics()
             {
                 string code = @"
 using System.Windows.Forms;
@@ -271,13 +273,13 @@ namespace WinFormsApp1
 
                 await VerifyCS.VerifyAnalyzerAsync(code,
                     // /0/Test0.cs(61,13): warning WF0010: Control 'this.button2' has ordinal index of 0 but sets a different TabIndex of 2.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(61, 13, 61, 45).WithArguments("this.button2", "0", "2"),
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(61, 13, 61, 45).WithSpan(61, 13, 61, 45).WithSpan(62, 13, 62, 40).WithSpan(63, 13, 63, 45).WithSpan(64, 13, 64, 47).WithArguments("this.button2", "0", "2"),
                     // /0/Test0.cs(62,13): warning WF0010: Control 'button3' has ordinal index of 1 but sets a different TabIndex of 0.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(62, 13, 62, 40).WithArguments("button3", "1", "0"),
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(62, 13, 62, 40).WithSpan(61, 13, 61, 45).WithSpan(62, 13, 62, 40).WithSpan(63, 13, 63, 45).WithSpan(64, 13, 64, 47).WithArguments("button3", "1", "0"),
                     // /0/Test0.cs(63,13): warning WF0010: Control 'this.button1' has ordinal index of 2 but sets a different TabIndex of 1.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(63, 13, 63, 45).WithArguments("this.button1", "2", "1"),
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(63, 13, 63, 45).WithSpan(61, 13, 61, 45).WithSpan(62, 13, 62, 40).WithSpan(63, 13, 63, 45).WithSpan(64, 13, 64, 47).WithArguments("this.button1", "2", "1"),
                     // /0/Test0.cs(64,13): warning WF0010: Control 'this.treeView1' has ordinal index of 3 but sets a different TabIndex of 0.
-                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(64, 13, 64, 47).WithArguments("this.treeView1", "3", "0")
+                    VerifyCS.Diagnostic(ControlTabOrderAnalyzer.InconsistentTabIndexRuleIdDescriptor).WithSpan(64, 13, 64, 47).WithSpan(61, 13, 61, 45).WithSpan(62, 13, 62, 40).WithSpan(63, 13, 63, 45).WithSpan(64, 13, 64, 47).WithArguments("this.treeView1", "3", "0")
                     );
             }
         }
